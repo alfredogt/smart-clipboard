@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Lista de Textos</title>
+    <style>
+      body {
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        font-size: 16px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        padding: 0;
+        font-family: sans-serif;
+      }
+      ul {
+        list-style-type: none;
+        padding: 0;
+        /* margin-top: -30px; */
+        width: 300px;
+      }
+      li {
+        padding: 10px;
+        border-radius: 10px;
+        background-color: rgba(255, 255, 255, 0.1);
+        margin: 5px 0;
+        cursor: pointer;
+      }
+      .selected {
+        background-color: rgba(255, 255, 255, 0.3);
+      }
+      p.header {
+        position: absolute;
+        font-size: 12px;
+        right: 3px;
+        top: 0px;
+        margin: 0;
+        margin-right: 5px;
+        color: rgb(72 72 72)
+      }
+      p.footer {
+        position: absolute;
+        font-size: 12px;
+        left: 3px;
+        bottom: 0px;
+        margin: 0;
+        margin-left: 5px;
+        color: rgb(57, 57, 57)
+      }
+      .dragable {
+        cursor: move;
+        -webkit-app-region: drag;
+        width: 100%;
+        height: 30px;
+        position: fixed;
+        top: 0px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dragable"></div>
+
+    <p class="header">Smart Clipboard</p>
+    <ul id="clipboard-list">
+    </ul>
+    <p class="footer">@alfredogt</p>
+    <a id="clean-button" href="#" onclick="cleanClipboard()" style="
+        position: fixed;
+        bottom: 0px;
+        right: 12px;
+        background: #8f8e8e;
+        padding: 0;
+        border-radius: 3px;
+    ">
+        <img src="trash.png" alt="trash" style="
+          width: 17px;
+          margin: 0px;
+          align-items: center;
+          text-align: center;
+          margin-top: 2px;
+      ">
+    </a>
+    <a id="clean-button" href="#" onclick="startForm()" style="
+        position: fixed;
+        bottom: 0px;
+        right: 40px;
+        background: #8f8e8e;
+        padding: 0; 
+        border-radius: 3px;
+    ">
+        <img src="form.png" alt="trash" style="
+          width: 17px;
+          margin: 0px;
+          align-items: center;
+          text-align: center;
+          margin-top: 2px;
+      ">
+    </a>
+
+    <script>
+      let selectedIndex = 0;
+
+      // add event from main when update clipboard history
+      document.addEventListener('clipboard-history', (event, clipboardHistory) => {
+        selectedIndex = 0;
+        updateSelection();
+      });
+
+      // Función para actualizar la selección en la lista
+      function updateSelection() {
+        const listItems = document.querySelectorAll('#clipboard-list li');
+        listItems.forEach((item, index) => { 
+          item.classList.toggle('selected', index === selectedIndex);
+        });
+      }
+
+      // Escuchar las teclas de flecha
+      document.addEventListener('keydown', (event) => {
+        const listItems = document.querySelectorAll('#clipboard-list li');
+        if (event.key === 'ArrowDown') {
+          selectedIndex = (selectedIndex + 1) % listItems.length;
+        } else if (event.key === 'ArrowUp') {
+          selectedIndex = (selectedIndex - 1 + listItems.length) % listItems.length;
+        } else if (event.key === 'Enter') {
+          chooseItem(selectedIndex);
+        }
+        updateSelection();
+      });
+
+      // Agregar event listeners a los elementos de la lista una sola vez
+      document.querySelector('#clipboard-list').addEventListener('click', (event) => {
+        const clickedItem = event.target.closest('li');
+        if (clickedItem) {
+          const index = Array.from(clickedItem.parentNode.children).indexOf(clickedItem);
+          selectedIndex = index;
+          updateSelection();
+          chooseItem(index);
+        }
+      });
+
+      function chooseItem(index) {
+        const listItems = document.querySelectorAll('#clipboard-list li');
+        // call chooseItem from main.js
+        window.electronAPI.chooseItem(index);
+        showCopiedMessage(index);
+        // alert(`Seleccionaste: ${listItems[index].textContent}`);
+      }
+
+      function cleanClipboard() {
+        window.electronAPI.cleanClipboard();
+      }
+
+      function startForm(){
+        window.electronAPI.startForm();
+      }
+
+      function showCopiedMessage(index) {
+        const listItems = document.querySelectorAll('#clipboard-list li');
+        const selectedItem = listItems[index];
+        if (selectedItem) {
+          const originalText = selectedItem.textContent;
+          selectedItem.textContent = "Copiado!";
+          selectedItem.style.transition = "opacity 1.5s";
+          selectedItem.style.opacity = "0.5";
+          selectedItem.style.color = "rgb(104 202 228)";
+
+          setTimeout(() => {
+            selectedItem.style.opacity = "1";
+            setTimeout(() => {
+              selectedItem.textContent = originalText;
+              selectedItem.style.transition = "";
+              selectedItem.style.color = "white";
+            }, 500);
+          }, 0);
+        }
+      }
+
+      // Modificar la función chooseItem para incluir el mensaje de copiado
+      function chooseItem(index) {
+        window.electronAPI.chooseItem(index);
+        showCopiedMessage(index);
+      }
+
+      // Actualizar la selección al inicio
+      updateSelection();
+    </script>
+  </body>
+</html>
